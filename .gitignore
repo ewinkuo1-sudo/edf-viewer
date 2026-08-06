@@ -1,0 +1,23 @@
+# 注意：.gitignore 不支援行尾註解，註解一律獨立一行
+
+# 虛擬環境
+# 深層路徑會超過 Windows 260 字元上限，git add 會中途出錯中止
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# 資料集
+# Sleep-EDF 是公開資料，可用 MNE 重新下載，不進版控
+data/
+mne_data/
+*.edf
+
+# 執行期狀態
+*.log
+.streamlit/secrets.toml
+
+# 系統
+.DS_Store
+Thumbs.db
