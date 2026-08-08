@@ -24,6 +24,17 @@ data/SC4002EC-Hypnogram.edf
 
 Hypnogram 會依檔名前 6 碼（`SC4002`）自動配對，不用手動選。
 
+`.edf` 檔太大（PSG 約 50 MB）**不進版控**。這是 PhysioNet 的公開資料集
+[Sleep-EDF Database Expanded](https://physionet.org/content/sleep-edfx/)，
+可以直接用 MNE 下載：
+
+```powershell
+.\.venv\Scripts\python.exe -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data(subjects=[0], recording=[2]))"
+```
+
+它會下載到 `~/mne_data/`，把印出來的那兩個檔案複製（或連結）到 `data/` 即可。
+也可以直接從 PhysioNet 網站抓 `SC4002E0-PSG.edf` 和 `SC4002EC-Hypnogram.edf`。
+
 ## 啟動
 
 ```powershell
@@ -41,3 +52,70 @@ Hypnogram 會依檔名前 6 碼（`SC4002`）自動配對，不用手動選。
 - 導覽列下方以對應顏色顯示目前 epoch 的睡眠階段
 - Plotly 波形圖，可縮放平移（滾輪縮放已開啟），每個頻道各自一條 y 軸
 - 波形圖下方 expander 收合各頻道統計（max / min / mean / std）
+
+## 進階分析
+
+兩支離線腳本，**分別用不同的虛擬環境**（yasa 的依賴鏈偏舊，和現有 `.venv`
+的 numpy 2.5 / pandas 3.0 衝突，所以完全隔開）：
+
+| 腳本 | 用哪個 venv | 產出 |
+| --- | --- | --- |
+| `report_sleep.py` | `.venv`（現有） | `report/sleep_report.html` |
+| `yasa_compare.py` | `.venv-yasa`（獨立） | `report/yasa_*.png`、`report/yasa_metrics.json` |
+
+兩支都共用 `sleep_utils.py` 做前置處理（hypnogram → 30 秒 epoch、
+AASM 五類、clip 超長標註、裁切出 TIB 區間）。
+
+### 練習 A —— 睡眠報告
+
+```powershell
+.\.venv\Scripts\python.exe report_sleep.py
+```
+
+產出單一自包含的 `report/sleep_report.html`（圖表全部 base64 內嵌，
+不需要網路或外部 CDN，可直接繳交）。內容包含 hypnogram、各階段時間與佔比
+（圓餅圖 + 表格，同時給「佔 TIB」和「佔 TST」兩欄）、
+Sleep Efficiency / SOL / REM Latency / WASO / 覺醒次數，
+以及各階段的 Welch 功率頻譜與相對頻帶功率。
+
+**不需要在 `.venv` 裡裝任何東西** —— 只用到既有的 mne / numpy / scipy / matplotlib。
+
+### 練習 B —— YASA 自動分期比對
+
+第一次要先建獨立環境（只需做一次）：
+
+```powershell
+py -3.12 -m venv .venv-yasa
+.\.venv-yasa\Scripts\python.exe -m pip install -r requirements-yasa.txt
+```
+
+然後執行：
+
+```powershell
+.\.venv-yasa\Scripts\python.exe yasa_compare.py
+```
+
+會產出 `report/yasa_metrics.json`、`yasa_hypnogram_compare.png`、
+`yasa_confusion.png`、`yasa_classification_report.png`（另附 `.txt` 版）。
+特徵抽取要跑約 10 分鐘，這是正常的。
+
+**受試者 metadata 是假設值**：腳本開頭的 `AGE = 25`、`MALE = True` 是假設，
+真值需查 Sleep-EDF 的 `SC-subjects.xls`，本專案沒有這個檔案。
+YASA 把年齡與性別當成特徵之一，填錯會小幅影響結果。
+
+#### 為什麼準確率會低於論文宣稱值
+
+YASA 的分類器是用 **C3/C4 中央導程**訓練的，而這筆 Sleep-EDF 資料
+只有 **Fpz-Cz 額葉導程**和 Pz-Oz 頂枕導程，沒有中央導程。
+額葉導程的睡眠紡錘波（sigma, 12–16 Hz）振幅明顯小於中央區，
+N2 的關鍵特徵因此被削弱；額葉對慢波則相對敏感，容易把 N2 判成 N3。
+**所以準確率低於論文宣稱的水準是預期內的，不是程式有錯。**
+
+另外兩個刻意的取捨：
+
+- **只餵 EEG + EOG，不傳 `emg_name`**。這份 EDF 的 `EMG submental`
+  原始取樣率只有 1 Hz，被 MNE 上採樣成 100 Hz 的階梯訊號，
+  餵給 YASA 只會製造假特徵、拉低準確率。`Resp oro-nasal` 和
+  `Temp rectal` 同理，也一律不用於頻譜或分期。
+- **評分時排除人工標註為 `Movement time` / `Sleep stage ?` 的 epoch**，
+  這些在 `sleep_utils.py` 裡統一標成 `-1`。

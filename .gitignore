@@ -3,6 +3,7 @@
 # 虛擬環境
 # 深層路徑會超過 Windows 260 字元上限，git add 會中途出錯中止
 .venv/
+.venv-yasa/
 venv/
 __pycache__/
 *.pyc
@@ -16,7 +17,13 @@ mne_data/
 
 # 執行期狀態
 *.log
+*.spawn.log
 .streamlit/secrets.toml
+
+# agent wrapper 產生的 brief（每次執行都會重寫，不進版控）
+*.effective_brief.md
+
+# 注意：report/ 底下的 .png 和 .html 是繳交物，要進版控，不要 ignore
 
 # 系統
 .DS_Store

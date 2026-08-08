@@ -1,0 +1,18 @@
+YASA vs manual scoring — SC4002E0-PSG.edf
+eeg_name=EEG Fpz-Cz, eog_name=EOG horizontal, emg_name=None
+metadata: age=25, male=True  (假設值，真值需查 SC-subjects.xls)
+epochs: common=2830, scored=2829, excluded (manual == -1)=1
+accuracy=0.9219  cohen_kappa=0.8521  macro_f1=0.7608
+
+              precision    recall  f1-score   support
+
+           W      0.993     0.969     0.981      1885
+          N1      0.432     0.271     0.333        59
+          N2      0.690     0.914     0.787       373
+          N3      0.911     0.963     0.936       297
+           R      0.952     0.642     0.767       215
+
+    accuracy                          0.922      2829
+   macro avg      0.796     0.752     0.761      2829
+weighted avg      0.930     0.922     0.921      2829
+
