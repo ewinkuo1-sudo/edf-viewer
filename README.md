@@ -1,6 +1,50 @@
-# EDF Viewer
+# EDF Viewer —— Sleep-EDF 多導睡眠圖瀏覽與分析
 
-用 Streamlit + MNE + Plotly 瀏覽 EDF 訊號波形（含 Sleep-EDF Hypnogram 睡眠分期）。
+這是一套針對多導睡眠圖（PSG，polysomnography）的瀏覽與分析工具，用
+Streamlit + MNE + Plotly + YASA 實作，分成三個部分：
+
+1. **波形瀏覽器**（互動網頁）—— 把 `.edf` 檔切成 30 秒 epoch，逐段翻看
+   EEG / EOG / 呼吸 / 肌電等原始訊號，並同步顯示該段的人工睡眠分期標註，
+   可一鍵跳到下一個 W / N1 / N2 / N3 / REM。
+2. **睡眠報告**（離線腳本 → 自包含 HTML）—— 從人工標註算出整夜 hypnogram、
+   七項臨床睡眠指標（睡眠效率、TST、SOL、REM latency、WASO、覺醒次數、階段佔比），
+   以及各睡眠階段的 EEG 功率頻譜與相對頻帶功率。
+3. **自動分期比對**（離線腳本 → 圖表）—— 用 YASA 對同一份訊號做自動睡眠分期，
+   跟人工標註逐 epoch 比對，產出 accuracy、Cohen's kappa、混淆矩陣與各階段 F1。
+
+測試資料是 PhysioNet 公開資料集
+[Sleep-EDF Database Expanded](https://physionet.org/content/sleep-edfx/)
+的受試者 SC4002（1989-04-25 錄製，23.6 小時，7 頻道，100 Hz，2830 個 epoch）。
+
+## 成果截圖
+
+### 1. 波形瀏覽器
+
+![波形瀏覽器](docs/viewer.png)
+
+左側選檔與頻道、上方導覽列翻頁與跳階段，標題列即時顯示目前 epoch 的睡眠階段。
+
+### 2. 睡眠報告
+
+![睡眠報告](report/shot_part1.png)
+
+整夜 hypnogram（已裁切出躺床區間 21:34–06:58）、七項指標卡片（各附健康成人參考範圍）、
+各階段時間與佔比。完整報告見
+[`report/sleep_report.html`](report/sleep_report.html)（單一自包含檔案，下載後直接用瀏覽器開啟；
+線上預覽：[htmlpreview](https://htmlpreview.github.io/?https://github.com/ewinkuo1-sudo/edf-viewer/blob/main/report/sleep_report.html)）。
+
+### 3. 人工標註 vs YASA 自動分期
+
+![人工 vs YASA](report/yasa_hypnogram_compare.png)
+
+上排人工標註、下排 YASA 自動判讀，中間紅色細條標出兩者不一致的 epoch，
+最下方是 YASA 對每個 epoch 的信心值。虛線之間是裁切後的躺床區間。
+
+![混淆矩陣](report/yasa_confusion.png)
+
+整段錄音 accuracy **0.9219**、Cohen's kappa **0.8521**；
+只看躺床區間則為 0.8287 / 0.7685。各階段 F1 與誤判流向見
+[`report/RUN_SUMMARY.md`](report/RUN_SUMMARY.md)。
 
 ## 安裝
 
